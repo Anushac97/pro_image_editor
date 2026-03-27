@@ -9,6 +9,7 @@ import '../utils/dart_ui_remove_transparent_image_areas.dart';
 import '../utils/encoder/encode_image.dart';
 import 'thread_manager.dart';
 
+
 /// A service class responsible for converting images based on the provided
 /// configurations and managing the conversion process using a thread manager.
 ///
@@ -96,7 +97,7 @@ class ImageConverterService {
   /// Returns a `Uint8List` containing the converted image data or `null`
   /// if the conversion fails.
   Future<Uint8List?> _convertOnMainThread({required ui.Image image}) async {
-    if (configs.cropToDrawingBounds) {
+    if (!configs.cropToImageBounds && configs.cropToDrawingBounds) {
       image = await dartUiRemoveTransparentImgAreas(image) ?? image;
     }
     return await encodeImageFromThreadRequest(
@@ -135,7 +136,7 @@ class ImageConverterService {
   }) async {
     return ImageConvertThreadRequest(
       id: id,
-      generateOnlyImageBounds: configs.cropToDrawingBounds,
+      generateOnlyImageBounds: !configs.cropToImageBounds && configs.cropToDrawingBounds,
       outputFormat: format,
       jpegChroma: configs.jpegChroma,
       jpegQuality: configs.jpegQuality,
