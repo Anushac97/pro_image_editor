@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 // Project imports:
 import '/core/models/editor_configs/pro_image_editor_configs.dart';
 import '/features/crop_rotate_editor/enums/crop_mode.enum.dart';
+import '/shared/widgets/transform/mask_image_cropper.dart';
 
 /// A [StatelessWidget] that applies transformations to its [child] widget
 /// based on provided transformation and editor configurations.
@@ -143,18 +144,32 @@ class TransformedContentGenerator extends StatelessWidget {
 
     CropMode cropMode = _transformConfigs.cropMode;
 
-    final effectiveCropMode =
-        cropMode == CropMode.oval && !configs.cropRotateEditor.exportOvalMask
-        ? CropMode.rectangular
-        : cropMode;
+    final effectiveCropMode = switch (cropMode) {
+      CropMode.oval
+          when !configs.cropRotateEditor.exportOvalMask => CropMode.rectangular,
+      CropMode.mask
+          when !configs.cropRotateEditor.exportMaskImage ||
+              configs.cropRotateEditor.maskImage == null =>
+        CropMode.rectangular,
+      _ => cropMode,
+    };
 
     final clipper = CutOutsideArea(
       configs: _transformConfigs,
-      cropMode: effectiveCropMode,
+      cropMode: effectiveCropMode == CropMode.mask
+          ? CropMode.rectangular
+          : effectiveCropMode,
     );
 
     if (effectiveCropMode == CropMode.oval) {
       return ClipOval(clipper: clipper, child: child);
+    } else if (effectiveCropMode == CropMode.mask) {
+      return MaskImageCropper(
+        clipper: clipper,
+        cropRect: clipper.getClip(_transformConfigs.originalSize),
+        maskImage: configs.cropRotateEditor.maskImage!,
+        child: child,
+      );
     } else {
       return ClipRect(clipper: clipper, child: child);
     }

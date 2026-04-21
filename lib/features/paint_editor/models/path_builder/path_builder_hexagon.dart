@@ -10,6 +10,7 @@ class PathBuilderHexagon extends PathBuilderBase {
     required super.item,
     required super.scale,
     required super.paintEditorConfigs,
+    super.blendMode,
   });
 
   @override

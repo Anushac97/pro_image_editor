@@ -52,6 +52,8 @@ class CropRotateEditorConfigs implements BaseSubEditorConfigs {
     this.invertDragDirection = false,
     this.initialCropMode = CropMode.rectangular,
     this.exportOvalMask = true,
+    this.maskImage,
+    this.exportMaskImage = true,
     this.enableTransformLayers = true,
     this.enableProvideImageInfos = false,
     this.enableDoubleTap = true,
@@ -140,6 +142,20 @@ class CropRotateEditorConfigs implements BaseSubEditorConfigs {
   /// shape. When `false`, the raw rectangular crop is exported without any
   /// oval masking, while the oval UI is still shown inside the crop editor.
   final bool exportOvalMask;
+
+  /// Optional image used when [initialCropMode] or the active crop mode is set
+  /// to [CropMode.mask].
+  ///
+  /// The mask image alpha defines the exported crop shape within the selected
+  /// crop rectangle.
+  final ImageProvider? maskImage;
+
+  /// Controls whether the configured [maskImage] is applied to the exported
+  /// result when the crop mode is [CropMode.mask].
+  ///
+  /// When `false`, the editor still uses the mask crop mode behavior, but the
+  /// exported image falls back to a standard rectangular crop.
+  final bool exportMaskImage;
 
   /// Defines which crop-rotate tools are available in the editor.
   ///
@@ -269,6 +285,8 @@ class CropRotateEditorConfigs implements BaseSubEditorConfigs {
     bool? invertDragDirection,
     CropMode? initialCropMode,
     bool? exportOvalMask,
+    ImageProvider? maskImage,
+    bool? exportMaskImage,
     List<CropRotateTool>? tools,
     bool? enableProvideImageInfos,
     double? initAspectRatio,
@@ -305,6 +323,8 @@ class CropRotateEditorConfigs implements BaseSubEditorConfigs {
       invertDragDirection: invertDragDirection ?? this.invertDragDirection,
       initialCropMode: initialCropMode ?? this.initialCropMode,
       exportOvalMask: exportOvalMask ?? this.exportOvalMask,
+      maskImage: maskImage ?? this.maskImage,
+      exportMaskImage: exportMaskImage ?? this.exportMaskImage,
       tools: tools ?? this.tools,
       enableProvideImageInfos:
           enableProvideImageInfos ?? this.enableProvideImageInfos,

@@ -42,6 +42,7 @@ class MainEditorBottombar extends StatelessWidget {
     required this.openFilterEditor,
     required this.openBlurEditor,
     required this.openEmojiEditor,
+    required this.openEraserEditor,
     required this.openStickerEditor,
     required this.openAudioEditor,
     required this.openClipsEditor,
@@ -82,6 +83,9 @@ class MainEditorBottombar extends StatelessWidget {
 
   /// Callback for opening the emoji editor.
   final Function() openEmojiEditor;
+
+  /// Callback for opening the image eraser editor.
+  final Function() openEraserEditor;
 
   /// Callback for opening the sticker editor.
   final Function() openStickerEditor;
@@ -198,11 +202,22 @@ class MainEditorBottombar extends StatelessWidget {
               );
 
             case SubEditorMode.emoji:
-              return _buildActionButton(
-                key: const ValueKey('open-emoji-editor-btn'),
-                label: configs.i18n.emojiEditor.bottomNavigationBarText,
-                icon: configs.emojiEditor.icons.bottomNavBar,
-                onPressed: openEmojiEditor,
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildActionButton(
+                    key: const ValueKey('open-emoji-editor-btn'),
+                    label: configs.i18n.emojiEditor.bottomNavigationBarText,
+                    icon: configs.emojiEditor.icons.bottomNavBar,
+                    onPressed: openEmojiEditor,
+                  ),
+                  _buildActionButton(
+                    key: const ValueKey('open-image-eraser-editor-btn'),
+                    label: configs.i18n.paintEditor.eraser,
+                    icon: configs.paintEditor.icons.eraser,
+                    onPressed: openEraserEditor,
+                  ),
+                ],
               );
 
             case SubEditorMode.sticker:

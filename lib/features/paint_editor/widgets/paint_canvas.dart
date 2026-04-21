@@ -39,6 +39,7 @@ class PaintCanvas extends StatefulWidget {
     required this.layerStackScaleFactor,
     required this.eraserMode,
     required this.eraserRadius,
+    this.eraseImageMode = false,
   });
 
   /// Callback function when the active paint is done.
@@ -104,6 +105,10 @@ class PaintCanvas extends StatefulWidget {
   /// from the canvas. A larger radius creates a bigger eraser area.
   final double eraserRadius;
 
+  /// When enabled, the eraser draws transparent strokes directly onto the
+  /// image instead of removing paint layers.
+  final bool eraseImageMode;
+
   @override
   PaintCanvasState createState() => PaintCanvasState();
 }
@@ -139,10 +144,26 @@ class PaintCanvasState extends State<PaintCanvas> {
 
   bool get _isPartialEraser => widget.eraserMode == EraserMode.partial;
   bool get _isFreeStyleMode =>
+      widget.eraseImageMode ||
       _paintCtrl.mode == PaintMode.freeStyle ||
       _paintCtrl.mode == PaintMode.freeStyleArrowStart ||
       _paintCtrl.mode == PaintMode.freeStyleArrowEnd ||
       _paintCtrl.mode == PaintMode.freeStyleArrowStartEnd;
+
+  bool get _isImageEraserMode =>
+      widget.eraseImageMode && _paintCtrl.mode == PaintMode.eraser;
+
+  PaintedModel get _activePaintedModel => PaintedModel(
+    offsets: [..._paintCtrl.offsets],
+    erasedOffsets: [],
+    mode: _isImageEraserMode ? PaintMode.freeStyle : _paintCtrl.mode,
+    color: _isImageEraserMode ? Colors.transparent : _paintCtrl.color,
+    strokeWidth: _isImageEraserMode
+        ? widget.eraserRadius
+        : _paintCtrl.scaledStrokeWidth,
+    fill: _paintCtrl.fill,
+    opacity: _isImageEraserMode ? 1 : _paintCtrl.opacity,
+  );
 
   @override
   void initState() {
@@ -184,6 +205,14 @@ class PaintCanvasState extends State<PaintCanvas> {
       case PaintMode.moveAndZoom:
         return;
       case PaintMode.eraser:
+        if (_isImageEraserMode) {
+          _paintCtrl
+            ..setStart(offset)
+            ..addOffsets(offset);
+          widget.onRefresh();
+          _activePaintStreamCtrl.add(null);
+          break;
+        }
         _hasPartialErasedAreas = false;
         widget.onRemovePartialStart();
         setState(() {});
@@ -217,6 +246,24 @@ class PaintCanvasState extends State<PaintCanvas> {
       case PaintMode.polygon:
         return;
       case PaintMode.eraser:
+        if (_isImageEraserMode) {
+          if (!_paintCtrl.busy) {
+            widget.onRefresh();
+            _paintCtrl.setInProgress(true);
+          }
+
+          if (_paintCtrl.start == null) {
+            _paintCtrl.setStart(offset);
+          }
+
+          _paintCtrl
+            ..addOffsets(offset)
+            ..setEnd(offset);
+
+          widget.onRefresh();
+          _activePaintStreamCtrl.add(null);
+          break;
+        }
         _processEraserInputAt(offset);
         break;
       default:
@@ -275,6 +322,12 @@ class PaintCanvasState extends State<PaintCanvas> {
     if (widget.paintCtrl.mode == PaintMode.moveAndZoom) {
       return;
     } else if (widget.paintCtrl.mode == PaintMode.eraser) {
+      if (_isImageEraserMode) {
+        if (_paintCtrl.offsets.isNotEmpty) {
+          _createPainting([..._paintCtrl.offsets]);
+        }
+        return;
+      }
       // Eraser mode doesn't create paintings - it only removes existing ones.
       // The removal is handled during pointer move via _processEraserInputAt.
       if (_isPartialEraser) widget.onRemovePartialEnd(_hasPartialErasedAreas);
@@ -431,11 +484,13 @@ class PaintCanvasState extends State<PaintCanvas> {
       final rawLayer = PaintedModel(
         offsets: offsets,
         erasedOffsets: [],
-        mode: _paintCtrl.mode,
-        color: _paintCtrl.color,
-        strokeWidth: _paintCtrl.scaledStrokeWidth,
+        mode: _isImageEraserMode ? PaintMode.freeStyle : _paintCtrl.mode,
+        color: _isImageEraserMode ? Colors.transparent : _paintCtrl.color,
+        strokeWidth: _isImageEraserMode
+            ? widget.eraserRadius
+            : _paintCtrl.scaledStrokeWidth,
         fill: _paintCtrl.fill,
-        opacity: _paintCtrl.opacity,
+        opacity: _isImageEraserMode ? 1 : _paintCtrl.opacity,
       );
       widget.onCreated(rawLayer);
     }
@@ -482,8 +537,11 @@ class PaintCanvasState extends State<PaintCanvas> {
                           willChange: true,
                           isComplex: true,
                           painter: DrawPaintItem(
-                            item: _paintCtrl.paintedModel,
+                            item: _activePaintedModel,
                             paintEditorConfigs: widget.paintEditorConfigs,
+                            blendMode: _isImageEraserMode
+                                ? BlendMode.clear
+                                : null,
                           ),
                         ),
                       )
